@@ -50,12 +50,9 @@ export default function App(props: {content: string, uuid:string, graphName: str
     if (priority && priority !== "0") data["priority"] = parseInt(priority);
     if (due_string && due_string !== "") data["due_string"] = due_string;
     if (logseq.settings!.appendLogseqUri) {
-      data["content"] = `[${removePrefix(
-        props.content
-      )}](logseq://graph/${props.graphName}?block-id=${props.uuid})`;
-    } else {
-      data["content"] = removePrefix(props.content);
+      data["description"] = `[logseq link](logseq://graph/${props.graphName}?block-id=${props.uuid})` 
     }
+    data["content"] = removePrefix(props.content);
 
     const sendResponse = await axios({
       method: "post",
@@ -69,7 +66,7 @@ export default function App(props: {content: string, uuid:string, graphName: str
     if (logseq.settings!.appendTodoistUrl) {
       await logseq.Editor.updateBlock(
         props.uuid,
-        `[${props.content}](${sendResponse.data.url})`
+        `${props.content} [(todoist)](${sendResponse.data.url})`
       );
     }
 

@@ -117,6 +117,7 @@ export const getIdFromProjectAndLabel = (content: string) => {
 export function removePrefix(content: string) {
   const prefixes = ["TODO", "DOING", "NOW", "LATER", "WAITING"];
   let newContent: string = content;
+  console.log(`[tomaz] removePrefix:: before = ${newContent}`)
   for (let p of prefixes) {
     if (newContent.startsWith(p)) {
       newContent = newContent.replace(p, "");
@@ -128,6 +129,7 @@ export function removePrefix(content: string) {
     newContent = newContent.substring(0, newContent.indexOf("LOGBOOK"));
   }
 
+  console.log(`[tomaz] removePrefix:: newContent = ${newContent}`)
   return newContent;
 }
 

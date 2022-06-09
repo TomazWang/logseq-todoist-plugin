@@ -19,6 +19,19 @@ const main = async () => {
   handleClosePopup();
 
   // Register push command
+  logseq.Editor.registerSlashCommand("block info", async (e) => {
+    const currBlk = (await logseq.Editor.getBlock(e.uuid)) as BlockEntity;
+    console.log(`[tomaz] /send task:: currBlk = ${JSON.stringify(currBlk)}`)
+
+    window.setTimeout(async function () {
+      await logseq.Editor.exitEditingMode();
+      logseq.App.showMsg(`
+       [:div.p-2
+         [:h2.text-xl "${currBlk.content}"]]`);
+    }, 500);
+  })
+
+
   logseq.Editor.registerSlashCommand("todoist - send task", async (e) => {
     const {
       sendDefaultProject,
@@ -31,22 +44,25 @@ const main = async () => {
     const currGraphName = (await logseq.App.getCurrentGraph())?.name ?? "logseq"
     const currBlk = (await logseq.Editor.getBlock(e.uuid)) as BlockEntity;
 
+    console.log(`[tomaz] /send task:: currBlk = ${JSON.stringify(currBlk)}`)
+    console.log(`[tomaz] /send task:: currBlk.content = ${currBlk.content}`)
+
+    
+
     await new Promise((r) => setTimeout(r, 2000));
 
     if (!sendDefaultProject && !sendDefaultLabel && !sendDefaultDeadline) {
       await sendTask(currBlk.content, currBlk.uuid, currGraphName);
     } else {
       let data: {
-        content: string;
-        project_id?: number;
-        due_string?: string;
-        label_ids?: number[];
+          content: string;
+          project_id?: number;
+          description?: string;
+          due_string?: string;
+          label_ids?: number[];
       } = {
-        content: appendLogseqUri
-          ? `[${removePrefix(
-              currBlk.content
-            )}](logseq://graph/${currGraphName}?block-id=${currBlk.uuid})`
-          : removePrefix(currBlk.content),
+          content: removePrefix(currBlk.content),
+          description: appendLogseqUri && `[logseq link](logseq://graph/${currGraphName}?block-id=${currBlk.uuid})`,
       };
       if (sendDefaultProject && sendDefaultProject !== "---")
         data["project_id"] = parseInt(
@@ -58,13 +74,13 @@ const main = async () => {
           parseInt(getIdFromProjectAndLabel(sendDefaultLabel) as string),
         ];
 
+      console.log(`[tomaz] /send task:: before send, data = ${JSON.stringify(data)}`)
+
       const sendResponse = await sendTaskFunction(data);
       if (appendTodoistUrl) {
         await logseq.Editor.updateBlock(
           currBlk.uuid,
-          `${removePrefixWhenAddingTodoistUrl(currBlk.content)}(${
-            sendResponse.url
-          })`
+          `${currBlk.content} [(todoist)](${sendResponse.url})`
         );
       }
       window.setTimeout(async function () {
