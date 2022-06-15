@@ -7,9 +7,10 @@ import {
   getIdFromProjectAndLabel,
   removePrefix,
   removePrefixWhenAddingTodoistUrl,
-  sendTaskFunction,
 } from "./helpersTodoist";
 import { sendTask } from "./sendTask";
+import { TodoistProxy } from "./todoist/TodoistProxy"
+
 
 const main = async () => {
   console.log("logseq-todoist-plugin loaded");
@@ -17,6 +18,8 @@ const main = async () => {
   callSettings();
 
   handleClosePopup();
+
+  const todoistProxy = TodoistProxy(logseq.settings!.apiToken)
 
   // Register push command
   logseq.Editor.registerSlashCommand("todoist - send task", async (e) => {
@@ -61,16 +64,29 @@ const main = async () => {
           parseInt(getIdFromProjectAndLabel(sendDefaultLabel) as string),
         ];
 
-      const sendResponse = await sendTaskFunction(data);
+        let task;
+
+        try {
+            task = await todoistProxy.sendTask({
+                projectId: data.project_id,
+                content: data.content,
+                description: data.description,
+                dueString: data.due_string,
+                labelIds: data.label_ids,
+            });
+        } catch (err) {
+          logseq.App.showMsg('There is an error sending your task. Please file an issue on Github.');
+          return;
+        }
 
       let newBlockContent = currBlk.content
 
       if (appendTodoistUrl === "Link content") {
-        newBlockContent = `${removePrefixWhenAddingTodoistUrl(currBlk.content)}(${sendResponse.url})`
+        newBlockContent = `${removePrefixWhenAddingTodoistUrl(currBlk.content)}(${task.url})`
       }
 
       if (appendTodoistUrl === "Append link") {
-        newBlockContent = `${currBlk.content} [(todoist)](${sendResponse.url})`
+        newBlockContent = `${currBlk.content} [(todoist)](${task.url})`
       }
       await logseq.Editor.updateBlock(
         currBlk.uuid,
@@ -79,10 +95,7 @@ const main = async () => {
 
       window.setTimeout(async function () {
         await logseq.Editor.exitEditingMode();
-        logseq.App.showMsg(`
-         [:div.p-2
-           [:h1 "Task!"]
-           [:h2.text-xl "${currBlk.content}"]]`);
+        logseq.App.showMsg(`[:div.p-2 [:h1 "Task!"] [:h2.text-xl "${currBlk.content}"]]`);
       }, 500);
     }
   });
